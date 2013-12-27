@@ -1,0 +1,110 @@
+package com.bluetoothexample;
+
+import com.example.tictac.LOG;
+
+import android.app.Activity;
+import android.util.Log;
+
+public class DiscoveryThread extends Thread {
+    
+	private static String TAG = "DiscoveryThread";
+    String t_name;
+    public bluetoothconn bt;
+    boolean bGo = false;
+
+    Activity parentact;
+    public DiscoveryThread(String name)
+	{
+     LOG.v(TAG,"constructing");	
+	 t_name = name;
+	 bt = new bluetoothconn();
+	 if( bt.bluetoothexist() == true)
+	 {
+		 LOG.v(TAG,"bluetoothexists");	
+	 }
+	 else
+	 {
+		 LOG.v(TAG,"bluetoothdoesNOTEXIST");
+	 }
+	}
+	
+    public int write(int deviceSelected, byte[] b)
+    {
+    	int iLen;
+    	iLen = 0;
+    	
+    	if(bt!=null)
+    	{
+    		//in the case of injection btemsdevices.INJECTOR
+    		iLen = bt.write(deviceSelected, b);
+    	}
+        return iLen;
+    }
+    
+
+    public void setactivity(Activity pact)
+    {
+    	parentact = pact;
+    }
+	public boolean startme()
+	{
+	  bGo = true;
+	  LOG.v(TAG,"startme");
+	  return bGo;
+	}
+	
+	public boolean stopme()
+	{
+	  LOG.v(TAG,"stopme");	
+	  bGo = false;
+	 return bGo;
+	}
+	public void close()
+	{
+		bt.close();
+	}
+	public void restart(String bluetoothFName)
+	{
+		LOG.v(TAG,"restart:enter");
+		stopme();
+		LOG.v(TAG,"restart:stopped running discovery thread");
+		bt.restart(bluetoothFName);
+		LOG.v(TAG,"restart:starting  discovery thread");
+		startme();
+	    LOG.v(TAG,"restart:started discovery thread");
+	    LOG.v(TAG,"restart:leave");
+	}
+	
+	private boolean bExit = false;
+	public void terminateRun(boolean bterm)
+	{
+		bExit = false;
+	}
+	
+	@Override
+    public void run() 
+    {
+	  while(bExit!=true)
+	  {
+		  try {
+			Thread.sleep(1000);
+		  } catch (InterruptedException e) {
+			LOG.v(TAG,"unable to sleep");
+			e.printStackTrace();
+		  }
+		  
+		  if(bGo == true)
+		  {	     
+		   LOG.v(TAG,"calling:bt.discoveryCallback");  
+	       bt.discoveryCallback(parentact);       
+		  }
+		  else
+		  {
+			  LOG.v(TAG,"NOT:calling:bt.discoveryCallback"); 
+		  }
+	  }  
+	  
+	  
+    }
+	
+}

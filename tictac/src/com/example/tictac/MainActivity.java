@@ -12,7 +12,7 @@ import android.widget.Button;
 
 public class MainActivity extends Activity implements OnClickListener {
 	
-	GameService  theInstance = GameService.getInstance();
+	public GameService  theInstance = GameService.getInstance();
 	
 	
   @Override
@@ -21,7 +21,7 @@ public class MainActivity extends Activity implements OnClickListener {
       LOG.set(true,true, true, true,false);
       setContentView(R.layout.activity_main);
       
-      theInstance.setServiceAddress("192.168.1.71");
+      theInstance.setServiceAddress("10.0.1.5");
       theInstance.startThread();
       Button playx = (Button)this.findViewById(R.id.playx);
       playx.setOnClickListener( this );
@@ -30,18 +30,27 @@ public class MainActivity extends Activity implements OnClickListener {
       playo.setOnClickListener( this );
 
       Timer timer = new Timer();
-      UpdateTimer ut = new UpdateTimer();
+      UpdateTimer ut = new UpdateTimer(this);
       ut.boardView = (BoardView)this.findViewById(R.id.bview);
       timer.schedule( ut, 200, 200 );
     }
 
     public void onClick(View v) {
     BoardView board = (BoardView)this.findViewById(R.id.bview);
+    
+    GameService gm;
+    gm = theInstance;
       if ( v.getId() == R.id.playx ) {
-        board.setColor( 2 );
+       if(gm.winner == CheckWinner.WINNER_NONE)
+       {
+    	   board.setColor( 2 );
+       }
       }
       if ( v.getId() == R.id.playo ) {
-        board.setColor( 1 );
+    	if(gm.winner == CheckWinner.WINNER_NONE)
+    	{
+    		board.setColor( 1 );
+    	}
       }
     }
 }

@@ -77,15 +77,53 @@ public class GameService implements Runnable
       int color = Integer.parseInt( me.getAttribute("color") );
       positions[x][y] = color;
     }
+    UpdateWinnerStatus();
   }
   public int game_game;
   public boolean bStartGame = false;
-  public void startGame(int game)
+  public int winner=CheckWinner.WINNER_NONE;
+  
+  public int startGame(int game)
   {
-	  game_game = game;
-	  bStartGame = true;
+	  winner = UpdateWinnerStatus();  
+	  if(winner==CheckWinner.WINNER_NONE)
+	  {
+		  game_game = game;
+		  bStartGame = true;
+	  }
+	  return winner;
   }
-  public void startGameASync( int game ) {
+  
+  private int UpdateWinnerStatus()
+  {
+	  winner = CheckWinner.CheckForWinner(positions);
+	  if(winner == CheckWinner.WINNER_NONE)
+	  {
+		  LOG.v(TAG,"TIC_TAC_TOE:NO_WINNER");
+	  }
+	  else
+	  {
+		  if(winner == CheckWinner.WINNER_TIE)
+		  {	  
+		   LOG.v(TAG,"TIC_TAC_TOE:TIE");
+		  }
+		  else if (winner == CheckWinner.WINNER_X)
+		  {
+			  LOG.v(TAG,"TIC_TAC_TOE:WINNER_X");  
+		  }
+		  else if (winner == CheckWinner.WINNER_0)
+		  {
+			  LOG.v(TAG,"TIC_TAC_TOE:WINNER_0");  
+		  }
+		  else
+		  {
+			  LOG.v(TAG,"Unexepected State"+winner);
+		  }
+	  }
+	  return winner;
+  }
+
+public void startGameASync( int game ) {
     HttpClient httpclient = new DefaultHttpClient();
     HttpPost httppost = new HttpPost("http://"+mTicTacToeServiceAddress+"/ttt/moves.php");
 
@@ -168,7 +206,9 @@ public class GameService implements Runnable
 					  LOG.v(TAG, "in runnable thread calling setPositionASync");
 					  setPositionASync( pos_game, pos_x, pos_y,pos_color);
 					  LOG.v(TAG, "in runnable thread called setPositionASync");
+					  UpdateWinnerStatus();
 					  bUsed = false;
+					  
 				  }
 				  if(bStartGame==true)
 				  {
@@ -177,6 +217,7 @@ public class GameService implements Runnable
 					  LOG.v(TAG,"in runnable thread calling startGameASync");
 					  startGameASync(game_game); 
 					  LOG.v(TAG,"in runnable thread called startGameASync");
+					  UpdateWinnerStatus();
 					  bUsed = false;
 				  }
 			  }

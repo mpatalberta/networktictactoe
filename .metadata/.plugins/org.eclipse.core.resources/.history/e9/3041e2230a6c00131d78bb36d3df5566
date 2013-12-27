@@ -1,0 +1,412 @@
+package com.bluetoothtester;
+
+import java.io.UnsupportedEncodingException;
+
+
+
+import com.bluetoothexample.BluetoothInbound;
+import com.bluetoothexample.DiscoveryThread;
+
+import com.bluetoothexample.HexDump;
+import com.bluetoothexample.LOG;
+import com.bluetoothexample.btemsdevices;
+
+import com.bluetoothexample.connectStateMarshall;
+import com.bluetoothtester.InjectionControl.injectCommand;
+import com.bluetoothtester.R;
+
+import android.R.color;
+import android.app.Activity;
+import android.content.BroadcastReceiver;
+import android.content.Context;
+import android.content.Intent;
+import android.content.IntentFilter;
+import android.graphics.Color;
+
+import android.os.Bundle;
+import android.view.View;
+import android.widget.AdapterView;
+import android.widget.AdapterView.OnItemSelectedListener;
+import android.widget.ArrayAdapter;
+import android.widget.Button;
+import android.widget.EditText;
+import android.widget.RadioButton;
+import android.widget.Spinner;
+
+public class BluetoothTesterActivity extends Activity  {
+	
+    static final boolean SYNTHETIC_GENERATOR = false;
+	static String TAG = "BluetoothexampleActivity";
+
+	static final  int MAX_CMD_BYTES=(255);
+ 
+    public byte[] cmd_bytes;
+    // this code is written to only support basic mode
+    public boolean injectSafeMode = false;
+	static public BluetoothInbound bluetoothIntentService;
+	private ResponseReceiver receiver;
+	UpdateData upd;
+	static public InjectionControl.injectCommand commandInSpinner=InjectionControl.injectCommand.UKNOWN;
+	static boolean bBlueToothInited = false;
+	static public DiscoveryThread dt = null;
+    static public InjectionControl ijc = null;
+    static public EditText injectSNDText;
+    static public EditText inboundInjectText;
+    static public RadioButton ConnectedToBlueToothRadioButton;
+	/** Called when the activity is first created. */
+	@Override
+	public void onCreate(Bundle savedInstanceState) {
+		super.onCreate(savedInstanceState);
+
+		setContentView(R.layout.main);
+		LOG.v(TAG, "onCreate:enter");
+
+		final Button SendInjectorBTN = (Button) findViewById(R.id.Send2InjectorBTN);
+		final Button ConnectBluetoothButton = (Button) findViewById(R.id.ConnectBluetoothButton);
+
+		final Button SafeModeBTN = (Button)findViewById(R.id.SafeMode);
+		final Button BasicModeBTN = (Button)findViewById(R.id.BasicMode);
+		final Button ClearSNDBTN = (Button)findViewById(R.id.ClearSNDCmd);
+		injectSNDText = (EditText)findViewById(R.id.Send2InjectorString);
+		inboundInjectText = (EditText) findViewById(R.id.RecvFromInjectorString);
+		
+		ConnectedToBlueToothRadioButton = (RadioButton)findViewById(R.id.ConnectedToBlueToothRadioButton);
+		boolean bdebugBT = true;
+		boolean bverboseBT = true;
+		boolean bwrite2file = true;
+		
+		
+		LOG.set(true,bverboseBT,true,bdebugBT,bwrite2file);// control output logging here
+		
+		injectSNDText.setFocusable(true);
+		injectSNDText.setFocusableInTouchMode(true);
+		injectSNDText.setClickable(true);
+		ConnectedToBlueToothRadioButton.setTextColor(Color.RED);
+		ConnectedToBlueToothRadioButton.setChecked(false);
+		ijc = new InjectionControl();
+		cmd_bytes = new byte[MAX_CMD_BYTES];
+		addItemsOnSpinnerSelectInjectCommand();  
+	    addListenerOnSpinnerSelectInjectCommandItemSelection(); 
+		
+		 dt = new DiscoveryThread("mybluetoothdiscovery");
+
+		
+		bluetoothIntentService = new BluetoothInbound(this,
+				ResponseReceiver.ACTION_RESP);
+		
+
+		dt.setactivity(BluetoothTesterActivity.this);
+
+		
+		LOG.v(TAG, "onCreate:activityset");
+
+		IntentFilter filter = new IntentFilter(ResponseReceiver.ACTION_RESP);
+		filter.addCategory(Intent.CATEGORY_DEFAULT);
+		receiver = new ResponseReceiver();
+		registerReceiver(receiver, filter);
+
+		
+		upd  = new UpdateData(this,ijc);
+		upd.Create();
+		StartBlueTooth();
+		
+		ClearSNDBTN.setOnClickListener(new View.OnClickListener() {
+
+			@Override
+			public void onClick(View v) {
+				injectSNDText.setText("");
+				inboundInjectText.setText("");
+				// force the state machine to go unknown for a clear command. Infer the user will type.
+				ijc.lastCommandSent = commandInSpinner = InjectionControl.injectCommand.UKNOWN;
+				LOG.v(TAG,"Clear text that can be sent\r\n");
+				upd.updateList();
+			}
+		});
+
+		BasicModeBTN.setOnClickListener(new View.OnClickListener() {
+
+			@Override
+			public void onClick(View v) {
+				injectSafeMode = false;
+				LOG.v(TAG,"injectSafeMode set to false\r\n");
+			}
+		});
+
+		SafeModeBTN.setOnClickListener(new View.OnClickListener() {
+
+			@Override
+			public void onClick(View v) {				
+				injectSafeMode = true;
+				LOG.v(TAG,"injectSafeMode set to true\r\n");
+			}
+		});
+
+		
+		
+		
+		
+		
+		
+	
+		SendInjectorBTN.setOnClickListener(new View.OnClickListener() {
+
+			@Override
+			public void onClick(View v) {
+				HexDump hex = new HexDump();
+				if(BluetoothTesterActivity.dt!= null)
+				{
+					  
+					if(injectSafeMode == true)
+					{
+										
+					}
+					else
+					{
+						ijc.lastCommandSent = commandInSpinner;// since we are sending a command set thhe command we have
+						String cmdStr;
+		    			cmdStr = injectSNDText.getText().toString();
+		    			
+		    			try {
+		    				byte[] b;
+							b = cmdStr.getBytes("UTF-8");
+							
+							for(int i=0;i<b.length;i++)
+							{
+								cmd_bytes[i]= b[i];
+							}
+							
+							ijc.lastCommandSent = ijc.getInjectCommand(cmdStr);
+							
+							for(int i=0;i<cmd_bytes.length;i++)
+							{
+								if(cmd_bytes[i] == InjectionControl.CR)
+								{
+									LOG.v(TAG,"Found a carriage return will not add one\r\n");
+									break;
+								}
+								
+								if(cmd_bytes[i] == 0) 
+								{
+									cmd_bytes[i] = InjectionControl.CR;
+									LOG.v(TAG,"Adding a carriage return to message\r\n");
+									break;
+								}
+							}
+							
+							
+						} catch (UnsupportedEncodingException e) {
+							// TODO Auto-generated catch block
+							e.printStackTrace();
+						}
+					}
+					LOG.v(TAG, hex.dumpHexString(cmd_bytes));	
+					BluetoothTesterActivity.dt.write(btemsdevices.INJECTOR, cmd_bytes);
+
+				}
+
+			}
+		});
+	
+		
+		ConnectBluetoothButton.setOnClickListener(new View.OnClickListener() {
+
+			@Override
+			public void onClick(View v) {	
+				if(bBlueToothInited==false)
+				{
+					bBlueToothInited = true;
+					dt.setactivity(BluetoothTesterActivity.this);
+					dt.startme();
+					dt.start();
+					
+				}
+				else
+				{
+					//maybe we ought not to do this dt.close();
+					
+				}
+			}
+		});
+		
+	}
+
+
+	
+	
+	private void processinjector(Bundle extras) {
+		LOG.v(TAG, "processinjector");
+		Object obj = extras.get(BluetoothInbound.THEINJECTOR);
+		if (obj != null) {
+			String str;
+			LOG.v(TAG, "processinjector:receivedintent");
+			byte[] b;
+
+			b = (byte[]) obj;
+
+			LOG.v(TAG, HexDump.dumpHexString(b));
+
+			
+			str = ijc.BuildANiceString(b,injectSafeMode);
+			inboundInjectText.setText(str);
+
+		}
+	}	
+	
+	
+	public void processBluetoothRestart(connectStateMarshall connState) 
+	{		
+		if(connState!=null)
+		{
+			if(connState.iState==connectStateMarshall.RESTART_DEV)
+			{
+				LOG.v(TAG, "processBluetoothRestart:We want to restart " + connState.sname
+				+ " bluetooth device");
+                dt.restart(connState.sname);
+
+		     
+
+			}
+		}
+
+	}
+
+	public class ResponseReceiver extends BroadcastReceiver {
+		public static final String ACTION_RESP = "com.bluetoothtester.action.MESSAGE_PROCESSED";
+
+		@Override
+		public void onReceive(Context context, Intent intent) {
+			LOG.v(TAG, "RespondReceiver:OnReceive");
+
+			Bundle extras = intent.getExtras();
+			if (extras == null) {
+				LOG.v(TAG, ":no extras");
+			} else {
+				connectStateMarshall connState;
+				LOG.v(TAG, ":extras");
+				
+				connState = BluetoothNotified(extras);
+				processBluetoothRestart(connState);
+				processinjector(extras);
+
+			}
+
+		}
+
+	}
+	
+	public connectStateMarshall BluetoothNotified(Bundle extras)
+	{
+		connectStateMarshall connState=null;
+		connState = (connectStateMarshall)extras.get(connectStateMarshall.myobjname);
+		if(connState!=null)
+		{
+			switch(connState.iState)
+			{
+			case connectStateMarshall.CONNECTED_DEV:
+				LOG.v(TAG,"CONNECT_DEV:"+connState.sname);
+				ConnectedToBlueToothRadioButton.setTextColor(Color.GREEN);
+				ConnectedToBlueToothRadioButton.setChecked(true);
+				
+				break;
+			case connectStateMarshall.FOUND_DEV:
+				LOG.v(TAG,"FOUND_DEV:"+connState.sname);
+				ConnectedToBlueToothRadioButton.setTextColor(Color.RED);
+				ConnectedToBlueToothRadioButton.setChecked(false);
+				break;
+			case connectStateMarshall.RESTART_DEV:
+				LOG.v(TAG,"RESTART_DEV:"+connState.sname);
+				ConnectedToBlueToothRadioButton.setTextColor(Color.RED);
+				ConnectedToBlueToothRadioButton.setChecked(false);
+				break;
+			case connectStateMarshall.LOST_DEV:
+				LOG.v(TAG,"LOST_DEV:"+connState.sname);
+				ConnectedToBlueToothRadioButton.setTextColor(Color.RED);
+				ConnectedToBlueToothRadioButton.setChecked(false);
+				break;
+			default:
+				LOG.v(TAG,"unknown connect state:"+connState.iState);
+			}
+		}
+		return connState;
+	}
+
+	Spinner selectInjectorCommandSpinner;
+	
+	public void addItemsOnSpinnerSelectInjectCommand()
+	 {
+		 
+		selectInjectorCommandSpinner = (Spinner) findViewById(R.id.SelectInjectorCommandSpinner);
+			
+			ArrayAdapter<CharSequence> dataAdapter = ArrayAdapter.createFromResource(this,R.array.InjectionCommand, 
+	                  android.R.layout.simple_spinner_item);
+			
+			dataAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+			selectInjectorCommandSpinner.setAdapter(dataAdapter);
+	}
+	
+	  public void addListenerOnSpinnerSelectInjectCommandItemSelection() {
+		    selectInjectorCommandSpinner.setOnItemSelectedListener(new OnItemSelectedListener() {
+	            @Override
+	            public void onItemSelected(AdapterView<?> parent, View view,
+	                    int position, long id) {
+
+	    			String cmdStr;
+	    			byte[] cmdBytes;
+	    			ArrayAdapter<CharSequence> dataAdapter;
+	    			
+	    				
+	    			// from position get command string
+	    			dataAdapter = (ArrayAdapter<CharSequence>) parent.getAdapter();
+	    			cmdStr = (String) dataAdapter.getItem(position);// cmdStr actually contains the description string
+	    			cmdBytes = ijc.BuildCmd(cmdStr,injectSafeMode);
+	    			if(cmdBytes!=null)
+	    			{
+	    				for(int i=0;i<cmdBytes.length;i++)
+	    				{
+	    					cmd_bytes[i] = cmdBytes[i];
+	    				}
+	    				
+	    			}
+
+	    			
+	    			if(cmdBytes !=null)
+	    			{
+	    				try {
+	    					cmdStr = new String(cmd_bytes,  "US-ASCII");
+	    				} catch (UnsupportedEncodingException e) {
+	    					// TODO Auto-generated catch block
+	    					e.printStackTrace();
+	    				} 
+	    			
+	    				injectSNDText.setText(cmdStr);
+	    			    // save what we have now for our command
+	    			    commandInSpinner = ijc.lastCommandSent;
+	    			    ijc.lastCommandSent = InjectionControl.injectCommand.UKNOWN;
+	    			}
+	    			else
+	    			{
+	    				injectSNDText.setText("unknownCommmand");
+	    			}
+	            	LOG.v("in addLinstenerOnSpinner",">"+position+"<");
+	            }
+				@Override
+				public void onNothingSelected(AdapterView<?> arg0) {
+					// TODO Auto-generated method stub
+					
+				}
+	        });    
+	}
+  
+	public void StartBlueTooth()
+	{
+		if(bBlueToothInited==false)
+		{
+			bBlueToothInited = true;
+			dt.setactivity(BluetoothTesterActivity.this);
+			dt.startme();
+			dt.start();
+			
+		}
+
+	}
+}  

@@ -1,0 +1,64 @@
+package com.bluetoothtester;
+
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import android.widget.EditText;
+import android.widget.ListView;
+import android.widget.SimpleAdapter;
+
+public class UpdateData {
+  BluetoothTesterActivity _bta;
+  InjectionControl _ijc;
+  ListView _lv=null;
+  ArrayList<String> stringDiscList;
+  ArrayList<String> stringValueList;
+  public UpdateData(BluetoothTesterActivity bta,InjectionControl ijc)
+  {
+	  _bta = bta;
+	  _ijc = ijc;
+  }
+   
+  public void Create()
+  {
+	  if(_lv==null)
+	  {
+		  _lv = (ListView)_bta.findViewById(com.bluetoothtester.R.id.listViewSyringeInjectData);
+		  stringDiscList = new ArrayList<String>();
+		  stringValueList = new ArrayList<String>();
+		 for (int i = 0; i <_ijc.mc.length; ++i) 
+		 {
+			 stringDiscList.add(_ijc.mc[i]._s);
+		 } 
+		 
+		 for (int i = 0; i <_ijc.mc.length; ++i) 
+		 {
+			 stringValueList.add("uknown"+i);
+		 }
+		 
+		 List<Map<String, String>> data = new ArrayList<Map<String, String>>();
+		 for (int i=0; i<stringDiscList.size(); i++) {
+		     Map<String, String> datum = new HashMap<String, String>(2);
+		     datum.put("title", stringDiscList.get(i));
+		     datum.put("subtitle", stringValueList.get(i));
+		     data.add(datum);
+		 }
+		 SimpleAdapter adapter = new SimpleAdapter(this._bta, data,
+		                                       android.R.layout.simple_list_item_2,
+		                                       new String[] {"title", "subtitle"},
+		                                       new int[] {android.R.id.text1,
+		                                                  android.R.id.text2});
+		 
+		 _lv.setAdapter(adapter);		
+		  
+	  }
+	  
+  }
+
+   private void setListAdapter(SimpleAdapter adapter) {
+	// TODO Auto-generated method stub
+	
+   }
+}

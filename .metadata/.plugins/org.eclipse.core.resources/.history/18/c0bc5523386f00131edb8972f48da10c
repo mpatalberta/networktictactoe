@@ -1,0 +1,69 @@
+package com.example.tictac;
+
+
+public static class CheckWinner {
+ public static int WINNER_X = 1; 
+ public static int WINNER_0 = 2; 
+ public static int WINNER_TIE = 3; 
+ public static int WINNER_NONE = 0; 
+
+ 	public int CheckForWinner( int [][] position)
+	{
+		int winnner = WINNER_NONE;
+                for(int i= 0;i<3;i++)
+		{
+			if(position[0][i] == WINNER_X &&
+			   position[1][i] == WINNER_X &&
+			   position[2][i] == WINNER_X )
+			{
+				return WINNER_X;
+			}
+			if(position[0][i] == WINNER_0 &&
+			   position[1][i] == WINNER_0 &&
+			   position[2][i] == WINNER_0 )
+			{
+				return WINNER_0;
+			}
+			if(position[i][0] == WINNER_X &&
+			   position[i][1] == WINNER_X &&
+			   position[i][2] == WINNER_X )
+			{
+				return WINNER_X;
+			}
+			if(position[i][0] == WINNER_0 &&
+			   position[i][1] == WINNER_0 &&
+			   position[i][2] == WINNER_0 )
+			{
+				return WINNER_0;
+			}
+		}
+                
+                // diagonal
+		if(position[0][0] == WINNER_X &&
+		   position[1][1] == WINNER_X &&
+		   position[2][2] == WINNER_X)
+		{
+		   return WINNER_X;
+		}
+		if(position[0][0] == WINNER_0 &&
+		   position[1][1] == WINNER_0 &&
+		   position[2][2] == WINNER_0)
+		{
+		   return WINNER_0;
+		}
+		if(position[0][2] == WINNER_X &&
+		   position[1][1] == WINNER_X &&
+		   position[2][0] == WINNER_X)
+		{
+		   return WINNER_X;
+		}
+		if(position[0][2] == WINNER_0 &&
+		   position[1][1] == WINNER_0 &&
+		   position[2][0] == WINNER_0)
+		{
+		   return WINNER_0;
+		}
+	
+		return winner;  
+	}
+}

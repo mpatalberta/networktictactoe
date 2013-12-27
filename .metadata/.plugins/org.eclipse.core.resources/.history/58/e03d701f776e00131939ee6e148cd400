@@ -1,0 +1,72 @@
+package com.bluetoothexample;
+
+import com.example.tictac.LOG;
+
+import android.os.Parcel;
+import android.os.Parcelable;
+
+public class connectStateMarshall implements Parcelable 
+{
+	public final static String myobjname = "connectStateMarshall";
+    static String TAG="connectStateMarshall";
+    
+    final static public  int FOUND_DEV = 1;
+    final static public  int CONNECTED_DEV = 2;
+    final static public  int LOST_DEV = 4;
+    final static public  int RESTART_DEV = 8;
+
+    public String sname;
+    public int iState;
+    
+    public void print()
+    {
+LOG.v(TAG,"iState="+iState);
+LOG.v(TAG,"sname="+sname);
+
+
+    }
+	public connectStateMarshall()
+	{
+		
+	}
+
+	public connectStateMarshall(Parcel in) {
+	    readFromParcel(in);
+	}
+
+	public static final Parcelable.Creator CREATOR = new Parcelable.Creator() {
+	    public connectStateMarshall createFromParcel(Parcel in) {
+	        return new connectStateMarshall (in);
+	    }
+
+	    public connectStateMarshall [] newArray(int size) {
+	        return new connectStateMarshall [size];
+	    }
+	};
+	public static final String UNKNOWN_NAME = "unknown";
+
+	@Override
+	public void writeToParcel(Parcel dest, int flags) 
+	{
+
+	    dest.writeString(this.sname);
+		dest.writeInt(this.iState);
+   
+
+	}
+
+	private void readFromParcel(Parcel in) {
+	    sname = in.readString();
+		this.iState = in.readInt();	    
+	}
+	//99.9% of the time you can just ignore this
+	@Override
+	public int describeContents() {
+		// TODO Auto-generated method stub
+		return 0;
+	}
+    
+    
+
+}
+

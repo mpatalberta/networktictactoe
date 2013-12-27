@@ -1,0 +1,63 @@
+package com.bluetoothtester;
+
+import android.widget.EditText;
+
+public class UpdateData {
+  BluetoothTesterActivity _bta;
+  InjectionControl _ijc;
+  
+  public UpdateData(BluetoothTesterActivity bta,InjectionControl ijc)
+  {
+	  _bta = bta;
+	  _ijc = ijc;
+  }
+  
+//  public void updateDisplay()
+//  {
+//	  EditText edt;
+//	  // model
+//	  edt = (EditText)_bta.findViewById(com.bluetoothtester.R.id.editModel);
+//	  if(_ijc.model!=null)
+//	  {
+//		  edt.setText(_ijc.model);
+//	  }
+//	  
+//	  // version
+//	  edt = (EditText)_bta.findViewById(com.bluetoothtester.R.id.EditVersion);
+//	  if(_ijc.version!=null)
+//	  {
+//		  edt.setText(_ijc.version);
+//	  }
+//	  // serial
+//	  edt = (EditText)_bta.findViewById(com.bluetoothtester.R.id.editSerialNumber);
+//	  if(_ijc.serialNumber!=null)
+//	  {
+//		  edt.setText(_ijc.serialNumber);
+//	  }
+//	  
+//	  
+//	  // alarm
+//	  edt = (EditText)_bta.findViewById(com.bluetoothtester.R.id.editAlarm);
+//	  if(_ijc.bAl== true)
+//	  {
+//		  edt.setText("Alarm On");
+//	  }
+//	  else
+//	  {
+//		  edt.setText("Alarm Off");
+//	  }
+//	  
+//	  // alarm
+//	  edt = (EditText)_bta.findViewById(com.bluetoothtester.R.id.editBuzzer);
+//	  if(_ijc.bBuz== true)
+//	  {
+//		  edt.setText("Buzzer On");
+//	  }
+//	  else
+//	  {
+//		  edt.setText("Buzzer Off");
+//	  }
+//	  
+//	  
+//  }
+}

@@ -8,30 +8,48 @@ import android.graphics.Rect;
 import android.util.AttributeSet;
 import android.view.MotionEvent;
 import android.view.View;
+import android.widget.Toast;
 
 public class BoardView extends View {
+  static public String TAG = "BoardView";
   private int _color = 1;
-  
+  Context theContext;
+  static boolean bOnlyOncePerGame = false;
   public void setColor( int c ) {
     _color = c;
   }
   
   public BoardView(Context context) {
       super(context);
+      theContext = context;
+      bOnlyOncePerGame = false;
       GameService.getInstance().startGame(0);
+      
   }
   
   public BoardView(Context context, AttributeSet attrs) {
       super(context,attrs);
+      theContext = context;
+      bOnlyOncePerGame = false;
       GameService.getInstance().startGame(0);
   }
   
   public BoardView(Context context, AttributeSet attrs, int defStyle) {
       super(context,attrs,defStyle);
+      theContext = context;
+      bOnlyOncePerGame = false;
       GameService.getInstance().startGame(0);
   }
 
   public boolean onTouchEvent( MotionEvent event ) {
+	  
+	// check if we have a winner
+	if(GameService.getInstance().winner != CheckWinner.WINNER_NONE)
+	{
+		LOG.v(TAG,"TouchEvent ignored we have a winner or tie");
+		return true;
+	}
+		
     if ( event.getAction() != MotionEvent.ACTION_UP )
       return true;
     int offsetX = getOffsetX();
@@ -114,5 +132,19 @@ public class BoardView extends View {
       }
     }
   }
+
+public void SetToast(String sres) {
+	
+	if(sres!=null)
+	{
+		if(bOnlyOncePerGame == false)
+		{
+		 bOnlyOncePerGame = true;
+	     // push a toast message up saying we have a winner
+		 Toast.makeText(theContext, sres, Toast.LENGTH_LONG).show();
+		}  
+	}
+	
+}
 
 }

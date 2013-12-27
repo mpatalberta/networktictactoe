@@ -1,0 +1,4 @@
+INDEX VERSION 1.126+/Users/mpatalberta/androidmacbook/myproj/.metadata/.plugins/org.eclipse.jdt.core
+1916681861.index
+2300535212.index
+3598465263.index
