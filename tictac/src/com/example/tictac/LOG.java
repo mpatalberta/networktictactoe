@@ -133,7 +133,7 @@ public class LOG
     }
     static boolean bRes = false;
     static BufferedWriter bos = null;
-    static String localPath = "/sdcard/newarene1000";
+    static String localPath = "/sdcard/networktictactoe";
     static String filename= null;
     public String setlocalpath(String sLocalPath)
     {
