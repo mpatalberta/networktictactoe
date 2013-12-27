@@ -1,0 +1,223 @@
+mysql -u username
+
+Networked multiplayer tic-tac-toe
+Frequently used acronyms
+
+    API: Application programming interface
+    HTTP: HyperText Transfer Protocol
+    IP: Internet protocol
+    SDK: Software development kit
+    SQL: Structured Query Language
+    UI: User interface
+    XML: Extensible Markup Language
+
+Casual games are extremely popular and very lucrative, and it's easy to see why. Not everyone across all the age groups is interested in playing online, first-person shooters against hordes of preteens with lightening-speed reflexes. Sometimes, it's more interesting to play games where you have time to think and strategize or where the goal is to cooperate with each other to win the game.
+
+The great thing about casual games from the developers' perspective is that they are much easier to build than the graphics-intensive, first-person shooters or sports games. So it's easier for a single developer, or a group of developers, to produce a first version of a novel new game.
+
+In this article, we go through the basics of creating a casual, networked multiplayer tic-tac-toe game. The game server is a MySQL- and PHP-based web application with an XML interface. The front end is a native Android application that works on Android phones.
+
+Back to top
+Building the back end
+
+The back end starts with a simple MySQL database that has two tables. Listing 1 shows the schema for the database.
+
+
+
+The first of the two tables is the games table, which has just the unique ID of the game. In a production application, you likely have a users table, and the games table includes the user IDs of both players. To keep it simple, though, I forgo this approach to concentrate on the basics of storing the game data, communicating between the client and server, and building the front end.
+
+The second table is the moves table, which includes the individual moves for the given game, so it has five columns. The first column is the unique ID of the move. The second column is the ID of the game this move applies to. Then come the x and y positions of the move. These values should be between 0 and 2 for both x and y given that you have a three-by-three grid. The last field is the "color" of the move, which is an integer that indicates X or O.
+
+To build the database, first use mysqladmin to create it and then use the mysql command to run the db.sql script as shown here:
+
+
+create a password as follows:
+Are you sure you didn't already set a password? You can do the following to reset it if you have:
+
+Quote:
+/etc/init.d/mysqld stop
+mysqld_safe --skip-grant-tables &
+mysql -u root
+mysql> use mysql;
+mysql> update user set password=PASSWORD("newrootpassword") where User='root';
+mysql> flush privileges;
+mysql> quit
+/etc/init.d/mysqld stop
+/etc/init.d/mysqld start 
+/usr/local/mysql/bin/mysql -u root ttt -p 
+password newrootpassword
+
+To delete
+DELETE FROM moves;
+DELETE FROM games;
+
+Not all of the above applies. It really for resetting to default password.
+
+/usr/local/mysql/bin/mysqladmin --user=root --password=foo create ttt
+/usr/local/mysql/bin/mysql --user=root --password=foo ttt < db.sql
+
+
+----------
+Now that you have the schema, you need to create a way to start a game. For this, you have a script called start.php, as in Listing 2.
+Listing 2. start.php
+
+<?php
+header( 'Content-Type:text/xml' );
+
+ the following line is for linux $dd = new PDO('mysql:host=localhost;dbname=ttt', 'root', '');
+ the following lie for my testing
+Usually means that you need to specify TCP/IP (1), or tell MySQL where your Unix socket is (2):
+
+    "mysql:host=127.0.0.1" or "mysql:host=localhost;port=3306"
+    "mysql:unix_socket=/var/run/mysqld/mysqld.sock"
+
+I used:
+$dd = new PDO('mysql:host=127.0.0.1;dbname=ttt', 'root', 'newrootpassword');
+
+
+$sql = 'INSERT INTO games VALUES ( 0 )';
+$sth = $dd->prepare($sql);
+$sth->execute( array() );
+$qid = $dd->lastInsertId();
+
+$doc = new DOMDocument();
+$r = $doc->createElement( "game" );
+$r->setAttribute( 'id', $qid );
+$doc->appendChild( $r );
+
+print $doc->saveXML();
+?>
+
+-----------------
+The script starts by connecting to the database. It then executes an INSERT statement against the games table and gets back the ID that was generated. From there it creates an XML document, adds the ID to a game tag, and exports the XML.
+
+You need to run this script to get a game in the database because the simple Android application does not have an interface to create games. Here is the code:
+
+$ php start.php
+<?xml version="1.0"?>
+<game id="1"/>
+$
+
+Now you have your first game. To see the list of games, use the games.php script that is in Listing 3.
+Listing 3. games.php
+
+<?php
+header( 'Content-Type:text/xml' );
+
+$dbh = new PDO('mysql:host=localhost;dbname=ttt', 'root', '');
+
+$sql = 'SELECT * FROM games';
+
+$q = $dbh->prepare( $sql );
+$q->execute( array() );
+
+$doc = new DOMDocument();
+$r = $doc->createElement( "games" );
+$doc->appendChild( $r );
+
+foreach ( $q->fetchAll() as $row) {
+  $e = $doc->createElement( "game" );
+  $e->setAttribute( 'id', $row['id'] );
+  $r->appendChild( $e );
+}
+
+print $doc->saveXML();
+?>
+
+This script, like the start.php script, starts by connecting to the database. After that it queries the games table to see what's available. And from there it creates a new XML document, adds a games tag, then adds game tags for each of the available games.
+
+When you run this script from the command line, you see something like this:
+
+$ php games.php
+<?xml version="1.0"?>
+<games><game id="1"/></games>
+$
+
+You can also run this script from the web browser to see the same output.
+
+Excellent! With the games API out of the way, it's time to write the server code to handle the moves. This code starts with building a helper script called show_moves that gets the current moves for a given game and exports them as XML. Listing 4 shows the PHP code for this helper function.
+Listing 4. show_moves.php
+
+<?php
+function show_moves( $dbh, $game ) {
+  $sql = 'SELECT * FROM moves WHERE game=?';
+
+  $q = $dbh->prepare( $sql );
+  $q->execute( array( $game ) );
+
+  $doc = new DOMDocument();
+  $r = $doc->createElement( "moves" );
+  $doc->appendChild( $r );
+
+  foreach ( $q->fetchAll() as $row) {
+    $e = $doc->createElement( "move" );
+    $e->setAttribute( 'x', $row['x'] );
+    $e->setAttribute( 'y', $row['y'] );
+    $e->setAttribute( 'color', $row['color'] );
+    $r->appendChild( $e );
+  }
+
+  print $doc->saveXML();
+}
+?>
+
+The script takes a database handle and the game ID. From there it executes the SQL to get the list of moves. Then it creates an XML document with the moves for the given game.
+
+You created this helper function because there are two scripts that use it; the first is a moves.php script that returns the current moves for the specified game. Listing 5 shows this script.
+Listing 5. moves.php
+
+<?php
+require_once( 'show_moves.php' );
+
+header( 'Content-Type:text/xml' );
+
+$dbh = new PDO('mysql:host=localhost;dbname=ttt', 'root', '');
+
+show_moves( $dbh, $_REQUEST['game'] );
+?>
+
+This simple script includes the helper function code, connects to the database, and then invokes the show_moves function with the specified game ID. To test this code, use the curl command to invoke the script on the server from the command line:
+
+$ curl "http://localhost/ttt/moves.php?game=1"
+<?xml version="1.0"?>
+<moves/>
+$
+
+Sadly, you haven't made any moves yet, so it's not a particularly interesting output. To remedy that you need to add the final script to the server API. Listing 6 shows the move.php script.
+Listing 6. move.php
+
+<?php
+require_once( 'show_moves.php' );
+
+header( 'Content-Type:text/xml' );
+
+$dbh = new PDO('mysql:host=localhost;dbname=ttt', 'root', '');
+$sql = 'DELETE FROM moves WHERE game=? AND x=? AND y=?';
+$sth = $dbh->prepare($sql);
+$sth->execute( array(
+  $_REQUEST['game'],
+  $_REQUEST['x'],
+  $_REQUEST['y']
+) );
+
+$sql = 'INSERT INTO moves VALUES ( 0, ?, ?, ?, ? )';
+$sth = $dbh->prepare($sql);
+$sth->execute( array(
+  $_REQUEST['game'],
+  $_REQUEST['x'],
+  $_REQUEST['y'],
+  $_REQUEST['color']
+) );
+
+show_moves( $dbh, $_REQUEST['game'] );
+?>
+
+This script starts by including the helper function and connecting to the database. It then executes two SQL statements. The first removes any move that might collide with the one being sent in. The second inserts a new row into the moves table for the specified move. The script then returns the list of moves to the client. This step saves the client from having to make two requests each time it makes a move. Bandwidth isn't cheap, so any time you can conglomerate requests you should.
+
+To test that this all works you can make a move:
+
+$ curl "http://localhost/ttt/move.php?game=1&x=1&y=2&color=1"
+<?xml version="1.0"?>
+<moves><move x="1" y="2" color="1"/></moves>
+
+With the game server code complete, you can build the Android front end to this multiplayer networked game.
